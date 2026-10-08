@@ -1,6 +1,6 @@
 # @rifqiadhi/sshpick
 
-Stop typing ssh commands by hand. sshpick reads your `~/.ssh/config`, lists your servers, and connects you in one keystroke. Zero dependencies, single file.
+Stop typing ssh commands by hand. sshpick reads your `~/.ssh/config`, lists your servers, and connects you in one keystroke.
 
 > npm package: [@rifqiadhi/sshpick](https://www.npmjs.com/package/@rifqiadhi/sshpick) | `npm install -g @rifqiadhi/sshpick`
 
