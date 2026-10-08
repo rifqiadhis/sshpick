@@ -1,6 +1,8 @@
-# sshpick
+# @rifqiadhi/sshpick
 
 Pick a host from your `~/.ssh/config` and connect. Zero dependencies.
+
+> npm package: [@rifqiadhi/sshpick](https://www.npmjs.com/package/@rifqiadhi/sshpick) — `npm install -g @rifqiadhi/sshpick`
 
 ## Install
 
@@ -8,6 +10,12 @@ Pick a host from your `~/.ssh/config` and connect. Zero dependencies.
 git clone https://github.com/rifqiadhis/sshpick.git
 cd sshpick
 npm link
+```
+
+Or from npm:
+
+```bash
+npm install -g @rifqiadhi/sshpick
 ```
 
 Or run directly:
