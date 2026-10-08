@@ -108,3 +108,8 @@ Set `SSHPICK_CONFIG=/path/to/config` to use a different ssh config file.
 ## License
 
 MIT
+
+---
+
+[![GitHub](https://img.shields.io/badge/GitHub-rifqiadhis%2Fsshpick-181717?logo=github&logoColor=white)](https://github.com/rifqiadhis/sshpick)
+[![npm](https://img.shields.io/badge/npm-@rifqiadhi%2Fsshpick-CB3837?logo=npm&logoColor=white)](https://www.npmjs.com/package/@rifqiadhi/sshpick)
