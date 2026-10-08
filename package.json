@@ -1,6 +1,6 @@
 {
   "name": "@rifqiadhi/sshpick",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Pick a host from your ssh config and connect. Zero dependencies.",
   "bin": {
     "sshpick": "bin/sshpick.js"

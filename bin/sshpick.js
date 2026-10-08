@@ -33,6 +33,10 @@ Usage:
   sshpick <user>@<host> [-i key] [-p port]   ad-hoc connect, ssh-style
   sshpick add <name> <user>@<host> [-i key] [-p port]   save a host to config
   sshpick add <name> --from "ssh user@host -i key.pem"   add from an ssh command
+  sshpick edit <name>            edit a host block in \$EDITOR
+  sshpick edit <name> <user>@<host> [-i key] [-p port]   update fields in place
+  sshpick rm <name>              remove a host from config
+  sshpick rename <old> <new>     rename a host alias
   sshpick --list                 list hosts and exit
   sshpick --help                 this help
 
@@ -155,6 +159,99 @@ function addHost({ name, user, host, port, identity }) {
   console.log(`${c.dim}saved to ${cfgPath}${c.reset}`);
 }
 
+/** Locate a host block's start/end line indexes (0-based, end exclusive) in the config text. */
+function findHostBlock(lines, name) {
+  const start = lines.findIndex((l) => {
+    const m = l.trim().match(/^host\s+(.+)$/i);
+    return m && m[1].trim().split(/\s+/).includes(name);
+  });
+  if (start === -1) return null;
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^\s*host\s+\S+/i.test(lines[i])) { end = i; break; }
+  }
+  return { start, end };
+}
+
+function requireHost(name, cfgPath) {
+  const hosts = parseSshConfig(cfgPath);
+  if (!hosts.find((h) => h.host === name)) {
+    console.error(`${c.red}Host "${name}" not found in ${cfgPath}${c.reset}`);
+    console.error(`Existing hosts: ${hosts.map((h) => h.host).join(', ') || '(none)'}`);
+    process.exit(1);
+  }
+}
+
+function removeHost(name) {
+  const cfgPath = sshConfigPath();
+  requireHost(name, cfgPath);
+  const lines = fs.readFileSync(cfgPath, 'utf8').split('\n');
+  const block = findHostBlock(lines, name);
+  const removed = lines.splice(block.start, block.end - block.start);
+  fs.writeFileSync(cfgPath, lines.join('\n'));
+  console.log(`${c.green}Removed ${name}${c.reset} (${removed.filter((l) => l.trim()).length} lines)`);
+}
+
+function renameHost(oldName, newName) {
+  const cfgPath = sshConfigPath();
+  requireHost(oldName, cfgPath);
+  if (parseSshConfig(cfgPath).find((h) => h.host === newName)) {
+    console.error(`${c.red}Host "${newName}" already exists${c.reset}`);
+    process.exit(1);
+  }
+  const lines = fs.readFileSync(cfgPath, 'utf8').split('\n');
+  const block = findHostBlock(lines, oldName);
+  lines[block.start] = lines[block.start].replace(new RegExp(`\\b${oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`), newName);
+  fs.writeFileSync(cfgPath, lines.join('\n'));
+  console.log(`${c.green}Renamed ${oldName} -> ${newName}${c.reset}`);
+}
+
+/** Update fields of an existing host block in place. */
+function editHostFields(name, { user, host, port, identity }) {
+  const cfgPath = sshConfigPath();
+  requireHost(name, cfgPath);
+  const lines = fs.readFileSync(cfgPath, 'utf8').split('\n');
+  const block = findHostBlock(lines, name);
+  const updated = { user: null, host: null, port: null, identity: null };
+  let changed = false;
+
+  for (let i = block.start; i < block.end; i++) {
+    const m = lines[i].trim().match(/^(\S+)\s*=?\s*(.*)$/);
+    if (!m) continue;
+    const key = m[1].toLowerCase();
+    if (key === 'hostname' && host) { lines[i] = `  HostName ${host}`; updated.host = host; changed = true; }
+    else if (key === 'user' && user) { lines[i] = `  User ${user}`; updated.user = user; changed = true; }
+    else if (key === 'port' && port) { lines[i] = `  Port ${port}`; updated.port = port; changed = true; }
+    else if (key === 'identityfile' && identity) { lines[i] = `  IdentityFile ${identity.replace(/^~/, os.homedir())}`; updated.identity = identity; changed = true; }
+  }
+
+  // append missing fields at the end of the block
+  const append = [];
+  if (host && updated.host === null) append.push(`  HostName ${host}`);
+  if (user && updated.user === null) append.push(`  User ${user}`);
+  if (port && updated.port === null) append.push(`  Port ${port}`);
+  if (identity && updated.identity === null) append.push(`  IdentityFile ${identity.replace(/^~/, os.homedir())}`);
+  if (append.length) {
+    lines.splice(block.end, 0, ...append);
+    changed = true;
+  }
+
+  if (!changed) {
+    console.error(`${c.yellow}Nothing to update for ${name}${c.reset}`);
+    process.exit(1);
+  }
+  fs.writeFileSync(cfgPath, lines.join('\n'));
+  console.log(`${c.green}Updated ${name}${c.reset}`);
+}
+
+function editInEditor(name) {
+  const cfgPath = sshConfigPath();
+  requireHost(name, cfgPath);
+  const editor = process.env.EDITOR || 'vi';
+  const child = spawn(editor, [cfgPath], { stdio: 'inherit' });
+  child.on('exit', (code) => process.exit(code || 0));
+}
+
 function connect(name) {
   const child = spawn('ssh', [name], { stdio: 'inherit' });
   child.on('exit', (code) => process.exit(code || 0));
@@ -233,6 +330,46 @@ async function main() {
       process.exit(1);
     }
     addHost({ name, ...parsed });
+    process.exit(0);
+  }
+
+  // sshpick rm <name>
+  if (args[0] === 'rm' || args[0] === 'remove' || args[0] === 'delete') {
+    if (!args[1]) {
+      console.error(`${c.red}Usage: sshpick rm <name>${c.reset}`);
+      process.exit(1);
+    }
+    removeHost(args[1]);
+    process.exit(0);
+  }
+
+  // sshpick rename <old> <new>
+  if (args[0] === 'rename' || args[0] === 'mv') {
+    if (!args[1] || !args[2]) {
+      console.error(`${c.red}Usage: sshpick rename <old> <new>${c.reset}`);
+      process.exit(1);
+    }
+    renameHost(args[1], args[2]);
+    process.exit(0);
+  }
+
+  // sshpick edit <name> [user@host] [-i key] [-p port]
+  if (args[0] === 'edit') {
+    const rest = args.slice(1);
+    if (!rest[0]) {
+      console.error(`${c.red}Usage: sshpick edit <name> [user@host] [-i key] [-p port]${c.reset}`);
+      process.exit(1);
+    }
+    if (rest.length === 1) {
+      editInEditor(rest[0]); // no field args: open $EDITOR
+      return;
+    }
+    const parsed = parseSshArgs(rest.slice(1));
+    if (!parsed.host && !parsed.user && !parsed.port && !parsed.identity) {
+      editInEditor(rest[0]);
+      return;
+    }
+    editHostFields(rest[0], parsed);
     process.exit(0);
   }
 

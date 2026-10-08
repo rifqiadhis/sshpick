@@ -2,7 +2,7 @@
 
 Pick a host from your `~/.ssh/config` and connect. Zero dependencies.
 
-> npm package: [@rifqiadhi/sshpick](https://www.npmjs.com/package/@rifqiadhi/sshpick) — `npm install -g @rifqiadhi/sshpick`
+> npm package: [@rifqiadhi/sshpick](https://www.npmjs.com/package/@rifqiadhi/sshpick) | `npm install -g @rifqiadhi/sshpick`
 
 ## Install
 
@@ -31,7 +31,27 @@ sshpick                          # interactive picker
 sshpick <host>                   # connect to a saved host
 sshpick <user>@<host> [-i key]   # ad-hoc connect, passed straight to ssh
 sshpick add <name> ...           # save a host to ~/.ssh/config
+sshpick edit <name> [user@host] [-i key] [-p port]   # update a saved host
+sshpick rm <name>                # remove a saved host
+sshpick rename <old> <new>       # rename a saved host
 sshpick --list                   # list saved hosts
+```
+
+### Editing and removing hosts
+
+```bash
+# change fields in place (only the given ones are updated)
+sshpick edit my-vps adi@203.0.113.10 -p 2222
+sshpick edit my-vps -i ~/.ssh/new_key.pem
+
+# or edit the config in $EDITOR
+sshpick edit my-vps
+
+# rename the alias
+sshpick rename my-vps web-prod
+
+# remove it
+sshpick rm my-vps
 ```
 
 ### Adding hosts
