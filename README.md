@@ -5,7 +5,7 @@ Pick a host from your `~/.ssh/config` and connect. Zero dependencies.
 ## Install
 
 ```bash
-git clone https://git.example.com/you/sshpick.git
+git clone https://github.com/rifqiadhis/sshpick.git
 cd sshpick
 npm link
 ```
