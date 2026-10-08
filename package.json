@@ -1,0 +1,12 @@
+{
+  "name": "sshpick",
+  "version": "0.1.0",
+  "description": "Simple SSH host manager — pick a host from your ~/.ssh/config and connect instantly",
+  "bin": {
+    "sshpick": "bin/sshpick.js"
+  },
+  "main": "bin/sshpick.js",
+  "keywords": ["ssh", "manager", "cli", "terminal", "tui"],
+  "license": "MIT",
+  "engines": { "node": ">=16" }
+}
