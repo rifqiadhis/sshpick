@@ -244,12 +244,26 @@ function editHostFields(name, { user, host, port, identity }) {
   console.log(`${c.green}Updated ${name}${c.reset}`);
 }
 
+function pickEditor() {
+  if (process.env.EDITOR) return process.env.EDITOR;
+  if (process.env.VISUAL) return process.env.VISUAL;
+  return process.platform === 'win32' ? 'notepad' : 'vi';
+}
+
+function launchEditor(editor, file) {
+  const child = spawn(editor, [file], { stdio: 'inherit', shell: process.platform === 'win32' });
+  child.on('error', (e) => {
+    console.error(`${c.red}Could not launch editor "${editor}": ${e.message}${c.reset}`);
+    console.error(`Set the EDITOR environment variable, e.g. EDITOR=code --wait`);
+    process.exit(1);
+  });
+  child.on('exit', (code) => process.exit(code || 0));
+}
+
 function editInEditor(name) {
   const cfgPath = sshConfigPath();
   requireHost(name, cfgPath);
-  const editor = process.env.EDITOR || 'vi';
-  const child = spawn(editor, [cfgPath], { stdio: 'inherit' });
-  child.on('exit', (code) => process.exit(code || 0));
+  launchEditor(pickEditor(), cfgPath);
 }
 
 function connect(name) {
@@ -489,12 +503,10 @@ async function main() {
         connect(host.host);
       }
     } else if (key.name === 'e') {
-      // open config in $EDITOR
-      process.stdout.write('\x1b[?25h');
-      if (process.stdin.isTTY) process.stdin.setRawMode(false);
-      const editor = process.env.EDITOR || 'vi';
-      const child = spawn(editor, [cfgPath], { stdio: 'inherit' });
-      child.on('exit', () => process.exit(0));
+      // open config in the user's editor
+      detach();
+      process.stdout.write('\x1b[2J\x1b[H');
+      launchEditor(pickEditor(), cfgPath);
       return;
     } else if (str && !key.ctrl && !key.meta && str.length === 1 && str >= ' ') {
       filter += str;

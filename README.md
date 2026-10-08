@@ -1,6 +1,6 @@
 # @rifqiadhi/sshpick
 
-Pick a host from your `~/.ssh/config` and connect. Zero dependencies.
+Stop typing ssh commands by hand. sshpick reads your `~/.ssh/config`, lists your servers, and connects you in one keystroke. Zero dependencies, single file.
 
 > npm package: [@rifqiadhi/sshpick](https://www.npmjs.com/package/@rifqiadhi/sshpick) | `npm install -g @rifqiadhi/sshpick`
 
